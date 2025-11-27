@@ -21,14 +21,30 @@ class ExamenRepositoryImpl @Inject constructor(
         seed: String?
     ): Modelo {
 
-        val dto = api.getSudoku(
-            apiKey = "U6DBlvqcjB91MMQZFWbwqQ==CmvttfN5sHKonxJT",
-            width = width ?: 3,
-            height = height ?: 3,
-            difficulty = difficulty ?: "medium",
-            seed = seed
-        )
+        return try {
 
-        return dto.toDomain()
+            val dto = api.getSudoku(
+                apiKey = "U6DBlvqcjB91MMQZFWbwqQ==CmvttfN5sHKonxJT",
+                width = width ?: 3,
+                height = height ?: 3,
+                difficulty = difficulty ?: "medium",
+                seed = seed
+            )
+
+            val modelo = dto.toDomain()
+
+            preferences.saveSudokuList(
+                sudokuList = listOf(modelo),
+                offset = 1,
+                totalCount = 1,
+            )
+
+            modelo
+        } catch (e: Exception) {
+
+            preferences.getSudokuCache()?.let { cache ->
+                return cache.sudoku.firstOrNull() ?: throw e
+            } ?: throw e
+        }
     }
 }
