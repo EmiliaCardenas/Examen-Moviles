@@ -20,11 +20,12 @@ class ExamenRepositoryImpl @Inject constructor(
         difficulty: String?,
         seed: String?
     ): Modelo {
+
         val dto = api.getSudoku(
-            apiKey = "U6DBlvqcjB91MMQZFWbwqQ==CmvttfN5sHKonxJT\n",
-            width = width, // prederteminado 3
-            height = height, // prederterminado 3
-            difficulty = difficulty, // prederterminado medium
+            apiKey = "U6DBlvqcjB91MMQZFWbwqQ==CmvttfN5sHKonxJT",
+            width = width ?: 3,
+            height = height ?: 3,
+            difficulty = difficulty ?: "medium",
             seed = seed
         )
 
