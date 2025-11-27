@@ -47,12 +47,10 @@ fun SudokuScreen(
                     Icon(Icons.Filled.ArrowBack, contentDescription = "Regresar")
                 }
             },
-            colors = TopAppBarColors(
+            colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = PurpleLight,
-                scrolledContainerColor = PurpleLight,
-                navigationIconContentColor = Purple,
                 titleContentColor = Purple,
-                actionIconContentColor = Purple
+                navigationIconContentColor = Purple
             )
         )
 
@@ -102,13 +100,23 @@ fun SudokuScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        BoardSizeSelector(
+                            currentSize = uiState.boardSize,
+                            onSizeSelected = { newSize ->
+                                viewModel.changeBoardSize(newSize, difficulty)
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         SudokuGrid(
                             puzzle = uiState.puzzle,
                             userInput = uiState.userInput,
                             onValueChange = { r, c, v ->
                                 viewModel.updateCell(r, c, v)
                             },
-                            incorrectCells = viewModel.incorrectCells
+                            incorrectCells = viewModel.incorrectCells,
+                            boardSize = uiState.boardSize
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -166,23 +174,73 @@ fun SudokuScreen(
 }
 
 @Composable
+fun BoardSizeSelector(
+    currentSize: Int,
+    onSizeSelected: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Tamaño:",
+            style = MaterialTheme.typography.titleMedium.copy(color = Purple),
+            modifier = Modifier.padding(end = 16.dp)
+        )
+
+        FilterChip(
+            selected = currentSize == 9,
+            onClick = { onSizeSelected(9) },
+            label = { Text("9x9") },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = Purple,
+                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                containerColor = PinkLight,
+                labelColor = Purple
+            )
+        )
+
+        Spacer(Modifier.width(8.dp))
+
+        FilterChip(
+            selected = currentSize == 4,
+            onClick = { onSizeSelected(4) },
+            label = { Text("4x4") },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = Purple,
+                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                containerColor = PinkLight,
+                labelColor = Purple
+            )
+        )
+    }
+}
+
+@Composable
 fun SudokuGrid(
     puzzle: List<List<Int?>>,
     userInput: List<MutableList<Int?>>,
     onValueChange: (row: Int, col: Int, value: Int?) -> Unit,
-    incorrectCells: Set<Pair<Int, Int>>
+    incorrectCells: Set<Pair<Int, Int>>,
+    boardSize: Int
 ) {
+    val cellSize = if (boardSize == 9) 42.dp else 48.dp
+    val textStyle = if (boardSize == 9) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium
+
     Column {
-        for (row in 0 until 9) {
+        for (row in 0 until boardSize) {
             Row {
-                for (col in 0 until 9) {
+                for (col in 0 until boardSize) {
                     val isFixed = puzzle[row][col] != null
                     val cellValue = if (isFixed) puzzle[row][col] else userInput[row][col]
                     val isIncorrect = !isFixed && incorrectCells.contains(row to col)
 
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(cellSize)
                             .border(
                                 width = 1.dp,
                                 color = Purple,
@@ -201,7 +259,7 @@ fun SudokuGrid(
                         if (isFixed && cellValue != null) {
                             Text(
                                 text = cellValue.toString(),
-                                style = MaterialTheme.typography.titleLarge.copy(
+                                style = textStyle.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = Purple
                                 )
@@ -218,7 +276,8 @@ fun SudokuGrid(
                                 onValueChange = { newText ->
                                     if (newText.length <= 1) {
                                         val num = newText.toIntOrNull()
-                                        if (num == null || num in 1..9) {
+                                        val maxValue = if (boardSize == 4) 4 else 9
+                                        if (num == null || num in 1..maxValue) {
                                             text = newText
                                             onValueChange(row, col, num)
                                         } else if (newText.isEmpty()) {
@@ -228,7 +287,7 @@ fun SudokuGrid(
                                     }
                                 },
                                 singleLine = true,
-                                textStyle = MaterialTheme.typography.titleLarge.copy(
+                                textStyle = textStyle.copy(
                                     color = Pink,
                                     fontWeight = FontWeight.Medium,
                                     textAlign = TextAlign.Center

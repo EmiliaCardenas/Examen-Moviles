@@ -8,6 +8,7 @@ data class SudokuScreenUiState(
     val solution: List<List<Int>>? = null,
     val userInput: List<MutableList<Int?>> = List(9) { MutableList(9) { null } },
     val error: String? = null,
-    val verificationMessage: String? = null
+    val verificationMessage: String? = null,
+    val boardSize: Int = 9
 )
 
