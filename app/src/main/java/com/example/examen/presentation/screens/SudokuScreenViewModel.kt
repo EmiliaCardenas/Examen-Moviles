@@ -6,7 +6,7 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class ScreenViewModel @Inject constructor(
+class SudokuScreenViewModel @Inject constructor(
 
 ) : ViewModel() {
     // Implementación de funciones

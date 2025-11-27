@@ -1,7 +1,7 @@
 package com.example.examen.presentation.screens
 
 
-data class ScreenUiState(
+data class SudokuScreenUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isSuccess: Boolean = false

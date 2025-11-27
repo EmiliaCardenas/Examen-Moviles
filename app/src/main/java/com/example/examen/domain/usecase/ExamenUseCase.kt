@@ -14,7 +14,7 @@ class ExamenUseCase @Inject constructor(
         flow {
             try {
                 emit(Result.Loading)
-                val examen = repository.nombrefuncion()
+                val examen = repository.getSudoku()
                 emit(Result.Success(examen))
             } catch (e: Exception) {
                 emit(Result.Error(e))

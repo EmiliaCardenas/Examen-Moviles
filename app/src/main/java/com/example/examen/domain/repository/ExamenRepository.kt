@@ -1,9 +1,13 @@
 package com.example.examen.domain.repository
 
-// com.example.examen.domain.common.Result
+import com.example.examen.domain.model.Modelo
 
-class ExamenRepository {
+interface ExamenRepository {
 
-    // suspend fun getPokemonList(): List<Pokemon>
-    // suspend fun nombre(): respuesta
+    suspend fun getSudoku(
+        width: Int? = null,
+        height: Int? = null,
+        difficulty: String? = null,
+        seed: String? = null
+    ): Modelo
 }

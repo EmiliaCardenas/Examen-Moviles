@@ -2,27 +2,18 @@ package com.example.examen.presentation.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.examen.presentation.screens.SudokuScreen
 
 // Clase para las rutas
 sealed class Screen(
     val route: String,
 ) {
-    /**
-     * Ejemplos
-     *
-     * object Login : Screen("login")
-     *
-     *
-     * object WorkshopDetail : Screen("workshop/{id}") {
-     *         fun createRoute(id: String): String = "workshop/$id"
-     *     }
-     *
-     * object AddNewWorkshop : Screen("workshop/add")
-     */
+    object SudokuScreen : Screen("sudoku")
 
 }
 
@@ -34,11 +25,13 @@ fun ExamenNavGraph( // Va dentro del Main activity el ExamenNavGraph
 ){
     NavHost(
         navController = navController,
-        startDestination = //Screen..route, poner ruta de inicio de la app
+        startDestination = Screen.SudokuScreen.route,
         modifier = modifier,
     ){
-        composable(route = // Ruta de la clase Screen) {
-            NombreScreen( )
+        composable(route = Screen.SudokuScreen.route) {
+            SudokuScreen(
+                viewModel = hiltViewModel()
+            )
         }
     }
 }
