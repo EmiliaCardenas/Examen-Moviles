@@ -19,13 +19,33 @@ object AppModule {
      *             .build()
      *
      *     @Provides
+         * @Singleton
+         * fun provideGson(): Gson {
+         *     return Gson()
+         * }
+     *
+     *     @Provides
      *     @Singleton       Obtener el api
      *     fun providePokemonApi(retrofit: Retrofit): PokemonApi = retrofit.create(PokemonApi::class.java)
      *
-     *     @Provides
-     *     @Singleton      Obtener el repositorio
-     *     fun providePokemonRepository(api: PokemonApi): PokemonRepository = PokemonRepositoryImpl(api)
      *
+         * @Provides
+         * @Singleton
+         * fun providePokemonPreferences(
+         *     @ApplicationContext context: Context,
+         *     gson: Gson
+         * ): PokemonPreferences {
+         *     return PokemonPreferences(context, gson)
+         * }
+     *
+     * @Provides
+     * @Singleton
+     * fun providePokemonRepository(
+     *     api: PokemonApi,
+     *     preferences: PokemonPreferences
+     * ): PokemonRepository {
+     *     return PokemonRepositoryImpl(api, preferences)
+     * }
      *
      *
      * */
