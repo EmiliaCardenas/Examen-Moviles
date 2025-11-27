@@ -34,9 +34,18 @@ fun SudokuScreen(
     difficulty: String
 ) {
     val uiState = viewModel.uiState.collectAsState().value
-
     LaunchedEffect(difficulty) {
-        viewModel.loadSudoku(difficulty)
+        if (difficulty == "load_saved") {
+            viewModel.loadSudoku(loadSavedGame = true)
+        } else {
+            viewModel.loadSudoku(difficulty)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.saveGame()
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -227,79 +236,101 @@ fun SudokuGrid(
     incorrectCells: Set<Pair<Int, Int>>,
     boardSize: Int
 ) {
-    val cellSize = if (boardSize == 9) 42.dp else 48.dp
-    val textStyle = if (boardSize == 9) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium
+    val cellSize = if (boardSize == 9) 36.dp else 48.dp
+    val textStyle = if (boardSize == 9) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleMedium
+    val subGridSize = if (boardSize == 9) 3 else 2
 
-    Column {
-        for (row in 0 until boardSize) {
-            Row {
-                for (col in 0 until boardSize) {
-                    val isFixed = puzzle[row][col] != null
-                    val cellValue = if (isFixed) puzzle[row][col] else userInput[row][col]
-                    val isIncorrect = !isFixed && incorrectCells.contains(row to col)
+    Box(
+        modifier = Modifier
+            .padding(16.dp)
+            .border(
+                width = 3.dp,
+                color = Purple,
+                shape = RoundedCornerShape(4.dp)
+            )
+            .background(MaterialTheme.colorScheme.background)
+            .padding(4.dp)
+    ) {
+        Column {
+            for (row in 0 until boardSize) {
+                Row {
+                    for (col in 0 until boardSize) {
+                        val isFixed = puzzle[row][col] != null
+                        val cellValue = if (isFixed) puzzle[row][col] else userInput[row][col]
+                        val isIncorrect = !isFixed && incorrectCells.contains(row to col)
 
-                    Box(
-                        modifier = Modifier
-                            .size(cellSize)
-                            .border(
-                                width = 1.dp,
-                                color = Purple,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .background(
-                                when {
-                                    isIncorrect -> ErrorRed.copy(alpha = 0.7f)
-                                    isFixed -> PurpleLight.copy(alpha = 0.6f)
-                                    else -> PinkLight.copy(alpha = 0.6f)
-                                },
-                                shape = RoundedCornerShape(8.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isFixed && cellValue != null) {
-                            Text(
-                                text = cellValue.toString(),
-                                style = textStyle.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = Purple
+                        // Determinar bordes más gruesos para los sub-grids
+                        val borderEnd = if ((col + 1) % subGridSize == 0 && col != boardSize - 1) 2.dp else 1.dp
+                        val borderBottom = if ((row + 1) % subGridSize == 0 && row != boardSize - 1) 2.dp else 1.dp
+
+                        Box(
+                            modifier = Modifier
+                                .size(cellSize)
+                                .border(
+                                    width = borderEnd,
+                                    color = Purple.copy(alpha = 0.4f),
+                                    shape = RoundedCornerShape(0.dp)
                                 )
-                            )
-                        } else {
-                            var text by remember(cellValue) { mutableStateOf(cellValue?.toString() ?: "") }
-
-                            LaunchedEffect(cellValue) {
-                                text = cellValue?.toString() ?: ""
-                            }
-
-                            BasicTextField(
-                                value = text,
-                                onValueChange = { newText ->
-                                    if (newText.length <= 1) {
-                                        val num = newText.toIntOrNull()
-                                        val maxValue = if (boardSize == 4) 4 else 9
-                                        if (num == null || num in 1..maxValue) {
-                                            text = newText
-                                            onValueChange(row, col, num)
-                                        } else if (newText.isEmpty()) {
-                                            text = ""
-                                            onValueChange(row, col, null)
-                                        }
+                                .border(
+                                    width = borderBottom,
+                                    color = Purple.copy(alpha = 0.4f),
+                                    shape = RoundedCornerShape(0.dp)
+                                )
+                                .background(
+                                    when {
+                                        isIncorrect -> ErrorRed.copy(alpha = 0.3f)
+                                        isFixed -> PurpleLight.copy(alpha = 0.1f)
+                                        else -> MaterialTheme.colorScheme.background
                                     }
-                                },
-                                singleLine = true,
-                                textStyle = textStyle.copy(
-                                    color = Pink,
-                                    fontWeight = FontWeight.Medium,
-                                    textAlign = TextAlign.Center
-                                ),
-                                modifier = Modifier.fillMaxSize(),
-                                decorationBox = { inner ->
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) { inner() }
+                                )
+                                .padding(1.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isFixed && cellValue != null) {
+                                Text(
+                                    text = cellValue.toString(),
+                                    style = textStyle.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = Purple
+                                    )
+                                )
+                            } else {
+                                var text by remember(cellValue) { mutableStateOf(cellValue?.toString() ?: "") }
+
+                                LaunchedEffect(cellValue) {
+                                    text = cellValue?.toString() ?: ""
                                 }
-                            )
+
+                                BasicTextField(
+                                    value = text,
+                                    onValueChange = { newText ->
+                                        if (newText.length <= 1) {
+                                            val num = newText.toIntOrNull()
+                                            val maxValue = if (boardSize == 4) 4 else 9
+                                            if (num == null || num in 1..maxValue) {
+                                                text = newText
+                                                onValueChange(row, col, num)
+                                            } else if (newText.isEmpty()) {
+                                                text = ""
+                                                onValueChange(row, col, null)
+                                            }
+                                        }
+                                    },
+                                    singleLine = true,
+                                    textStyle = textStyle.copy(
+                                        color = if (isIncorrect) ErrorRed else Pink,
+                                        fontWeight = FontWeight.Medium,
+                                        textAlign = TextAlign.Center
+                                    ),
+                                    modifier = Modifier.fillMaxSize(),
+                                    decorationBox = { inner ->
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) { inner() }
+                                    }
+                                )
+                            }
                         }
                     }
                 }

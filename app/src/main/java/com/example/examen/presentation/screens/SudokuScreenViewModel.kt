@@ -2,6 +2,7 @@ package com.example.examen.presentation.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.examen.data.local.preferences.ExamenPreferences
 import com.example.examen.domain.repository.ExamenRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,7 +11,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 @HiltViewModel
 class SudokuScreenViewModel @Inject constructor(
-    private val repository: ExamenRepository
+    private val repository: ExamenRepository,
+    private val preferences: ExamenPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SudokuScreenUiState())
@@ -22,7 +24,7 @@ class SudokuScreenViewModel @Inject constructor(
     private var currentDifficulty: String = "medium"
     private var currentBoardSize: Int = 9
 
-    fun loadSudoku(selectedDifficulty: String? = null, seed: String? = null) {
+    fun loadSudoku(selectedDifficulty: String? = null, seed: String? = null, loadSavedGame: Boolean = false) {
         viewModelScope.launch {
             _uiState.value = SudokuScreenUiState(isLoading = true)
 
@@ -31,6 +33,28 @@ class SudokuScreenViewModel @Inject constructor(
             }
 
             try {
+
+                if (loadSavedGame) {
+                    val savedProgress = preferences.getGameProgress()
+                    if (savedProgress != null) {
+                        currentDifficulty = savedProgress.difficulty
+                        currentBoardSize = savedProgress.boardSize
+
+
+                        _uiState.value = SudokuScreenUiState(
+                            isLoading = false,
+                            isSuccess = true,
+                            puzzle = savedProgress.puzzle,
+                            solution = null,
+                            userInput = savedProgress.userInput.map { it.toMutableList() },
+                            boardSize = currentBoardSize
+                        )
+                        _incorrectCells.clear()
+                        preferences.clearGameProgress()
+                        return@launch
+                    }
+                }
+
                 val apiDifficulty = when (currentDifficulty) {
                     "easy" -> "easy"
                     "medium" -> "medium"
@@ -72,6 +96,21 @@ class SudokuScreenViewModel @Inject constructor(
         }
     }
 
+    fun saveGame() {
+        val state = _uiState.value
+        if (state.isSuccess && state.puzzle != null) {
+            preferences.saveGameProgress(
+                puzzle = state.puzzle,
+                userInput = state.userInput,
+                boardSize = state.boardSize,
+                difficulty = currentDifficulty
+            )
+        }
+    }
+
+    fun isGameSaved(): Boolean {
+        return preferences.getGameProgress() != null
+    }
     fun changeBoardSize(newSize: Int, difficulty: String) {
         if (newSize != currentBoardSize) {
             currentBoardSize = newSize

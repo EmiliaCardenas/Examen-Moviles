@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.example.examen.data.local.model.ExamenCache
+import com.example.examen.data.local.model.GameProgressCache
 import com.example.examen.data.local.preferences.PreferencesConstants.CACHE_DURATION
 import com.example.examen.data.local.preferences.PreferencesConstants.KEY_EXAMEN_CACHE
 import com.example.examen.data.local.preferences.PreferencesConstants.KEY_LAST_UPDATE
@@ -74,5 +75,45 @@ constructor(
 
     fun clearCache() {
         prefs.edit().clear().apply()
+    }
+
+    fun saveGameProgress(
+        puzzle: List<List<Int?>>,
+        userInput: List<MutableList<Int?>>,
+        boardSize: Int,
+        difficulty: String,
+    ) {
+        val progress = GameProgressCache(
+            puzzle = puzzle,
+            userInput = userInput.map { it.toList() },
+            boardSize = boardSize,
+            difficulty = difficulty,
+            savedAt = System.currentTimeMillis()
+        )
+
+        prefs.edit {
+
+            putString(PreferencesConstants.KEY_GAME_PROGRESS, gson.toJson(progress))
+        }
+    }
+
+    fun getGameProgress(): GameProgressCache? {
+        val json = prefs.getString(PreferencesConstants.KEY_GAME_PROGRESS, null)
+        if (json == null) return null
+
+        return try {
+            val progress = gson.fromJson(json, GameProgressCache::class.java)
+            progress.copy(userInput = progress.userInput.map { it.toMutableList() })
+        } catch (e: Exception) {
+            clearGameProgress()
+            null
+        }
+    }
+
+
+    fun clearGameProgress() {
+        prefs.edit {
+            remove(PreferencesConstants.KEY_GAME_PROGRESS)
+        }
     }
 }
