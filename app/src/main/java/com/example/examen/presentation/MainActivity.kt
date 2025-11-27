@@ -9,7 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import com.example.examen.presentation.screens.SudokuScreen
+import com.example.examen.presentation.navigation.ExamenNavGraph
+import com.example.examen.presentation.screens.HomeScreen
 import com.example.examen.presentation.theme.ExamenTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -27,7 +28,8 @@ class MainActivity : ComponentActivity() {
             ExamenTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
-                        SudokuScreen()
+                        val navController = androidx.navigation.compose.rememberNavController()
+                        ExamenNavGraph(navController = navController)
                     }
                 }
             }

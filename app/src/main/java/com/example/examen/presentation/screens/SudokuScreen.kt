@@ -19,122 +19,144 @@ import com.example.examen.presentation.theme.Pink
 import com.example.examen.presentation.theme.PinkLight
 import com.example.examen.presentation.theme.Purple
 import com.example.examen.presentation.theme.PurpleLight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SudokuScreen(
+    navController: NavController,
     viewModel: SudokuScreenViewModel = hiltViewModel(),
+    difficulty: String
 ) {
     val uiState = viewModel.uiState.collectAsState().value
 
-    LaunchedEffect(Unit) {
-        viewModel.loadSudoku()
+    LaunchedEffect(difficulty) {
+        viewModel.loadSudoku(difficulty)
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(PinkLight, PurpleLight)
-                )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-
-        when {
-            uiState.isLoading -> {
-                CircularProgressIndicator(color = Purple)
-            }
-
-            uiState.error != null -> {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Error: ${uiState.error}",
-                        color = ErrorRed
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { viewModel.loadSudoku() },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Purple,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Text("Reintentar")
-                    }
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(
+            title = { Text("Sudoku") },
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Regresar")
                 }
-            }
+            },
+            colors = TopAppBarColors(
+                containerColor = PurpleLight,
+                scrolledContainerColor = PurpleLight,
+                navigationIconContentColor = Purple,
+                titleContentColor = Purple,
+                actionIconContentColor = Purple
+            )
+        )
 
-            uiState.puzzle != null -> {
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-
-                    Text(
-                        "Sudoku (muy) Feo",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            color = Purple,
-                            fontWeight = FontWeight.Bold
-                        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(PinkLight, PurpleLight)
                     )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(color = Purple)
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    SudokuGrid(
-                        puzzle = uiState.puzzle,
-                        userInput = uiState.userInput,
-                        onValueChange = { r, c, v ->
-                            viewModel.updateCell(r, c, v)
-                        },
-                        incorrectCells = viewModel.incorrectCells
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    uiState.verificationMessage?.let {
+                uiState.error != null -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            it,
-                            color = Purple,
-                            style = MaterialTheme.typography.titleMedium
+                            text = "Error: ${uiState.error}",
+                            color = ErrorRed
                         )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row {
-
+                        Spacer(modifier = Modifier.height(16.dp))
                         Button(
-                            onClick = { viewModel.verifySudoku() },
+                            onClick = { viewModel.loadSudoku() },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Purple,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) {
-                            Text("Verificar")
+                            Text("Reintentar")
+                        }
+                    }
+                }
+
+                uiState.puzzle != null -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "Sudoku (muy) Feo",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                color = Purple,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        SudokuGrid(
+                            puzzle = uiState.puzzle,
+                            userInput = uiState.userInput,
+                            onValueChange = { r, c, v ->
+                                viewModel.updateCell(r, c, v)
+                            },
+                            incorrectCells = viewModel.incorrectCells
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        uiState.verificationMessage?.let {
+                            Text(
+                                it,
+                                color = Purple,
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         }
 
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        Button(
-                            onClick = { viewModel.resetPuzzle() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Pink,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) {
-                            Text("Limpiar")
-                        }
+                        Row {
+                            Button(
+                                onClick = { viewModel.verifySudoku() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Purple,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Text("Verificar")
+                            }
 
-                        Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(8.dp))
 
-                        Button(
-                            onClick = { viewModel.newSudoku() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PurpleLight,
-                                contentColor = Purple
-                            )
-                        ) {
-                            Text("Nuevo")
+                            Button(
+                                onClick = { viewModel.resetPuzzle() },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Pink,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Text("Limpiar")
+                            }
+
+                            Spacer(Modifier.width(8.dp))
+
+                            Button(
+                                onClick = { viewModel.newSudoku(difficulty) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PurpleLight,
+                                    contentColor = Purple
+                                )
+                            ) {
+                                Text("Nuevo")
+                            }
                         }
                     }
                 }
@@ -142,7 +164,6 @@ fun SudokuScreen(
         }
     }
 }
-
 
 @Composable
 fun SudokuGrid(
@@ -155,7 +176,6 @@ fun SudokuGrid(
         for (row in 0 until 9) {
             Row {
                 for (col in 0 until 9) {
-
                     val isFixed = puzzle[row][col] != null
                     val cellValue = if (isFixed) puzzle[row][col] else userInput[row][col]
                     val isIncorrect = !isFixed && incorrectCells.contains(row to col)
@@ -178,7 +198,6 @@ fun SudokuGrid(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-
                         if (isFixed && cellValue != null) {
                             Text(
                                 text = cellValue.toString(),
@@ -187,11 +206,8 @@ fun SudokuGrid(
                                     color = Purple
                                 )
                             )
-                        } else if (!isFixed) {
-
-                            var text by remember(cellValue) {
-                                mutableStateOf(cellValue?.toString() ?: "")
-                            }
+                        } else {
+                            var text by remember(cellValue) { mutableStateOf(cellValue?.toString() ?: "") }
 
                             LaunchedEffect(cellValue) {
                                 text = cellValue?.toString() ?: ""
@@ -217,15 +233,12 @@ fun SudokuGrid(
                                     fontWeight = FontWeight.Medium,
                                     textAlign = TextAlign.Center
                                 ),
-                                modifier = Modifier
-                                    .fillMaxSize(),
+                                modifier = Modifier.fillMaxSize(),
                                 decorationBox = { inner ->
                                     Box(
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
-                                    ) {
-                                        inner()
-                                    }
+                                    ) { inner() }
                                 }
                             )
                         }

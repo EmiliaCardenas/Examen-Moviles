@@ -2,7 +2,6 @@ package com.example.examen.presentation.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.examen.domain.model.Modelo
 import com.example.examen.domain.repository.ExamenRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,17 +20,30 @@ class SudokuScreenViewModel @Inject constructor(
     private val _incorrectCells = mutableSetOf<Pair<Int, Int>>()
     val incorrectCells: Set<Pair<Int, Int>> get() = _incorrectCells
 
-    fun loadSudoku(
-        width: Int? = null,
-        height: Int? = null,
-        difficulty: String? = null,
-        seed: String? = null
-    ) {
+    private var currentDifficulty: String = "medium"
+
+    fun loadSudoku(selectedDifficulty: String? = null, seed: String? = null) {
         viewModelScope.launch {
             _uiState.value = SudokuScreenUiState(isLoading = true)
 
+            if (selectedDifficulty != null) {
+                currentDifficulty = selectedDifficulty.lowercase()
+            }
+
             try {
-                val modelo = repository.getSudoku(width, height, difficulty, seed)
+                val apiDifficulty = when (currentDifficulty) {
+                    "easy" -> "easy"
+                    "medium" -> "medium"
+                    "hard" -> "hard"
+                    else -> "medium"
+                }
+
+                val modelo = repository.getSudoku(
+                    width = 3,
+                    height = 3,
+                    difficulty = apiDifficulty,
+                    seed = seed
+                )
 
                 _uiState.value = SudokuScreenUiState(
                     isLoading = false,
@@ -79,9 +91,9 @@ class SudokuScreenViewModel @Inject constructor(
 
         _uiState.value = state.copy(
             verificationMessage = if (hasErrors)
-                "❌ Hay errores en el Sudoku. Revisa las celdas marcadas."
+                "Hay errores en el Sudoku. Limpialo y sigue jugando"
             else
-                "✔ Sudoku completado correctamente"
+                "Sudoku completado correctamente"
         )
     }
 
@@ -104,7 +116,7 @@ class SudokuScreenViewModel @Inject constructor(
     }
 
 
-    fun newSudoku() {
+    fun newSudoku(currentDifficulty: String) {
         _incorrectCells.clear()
 
         _uiState.value = _uiState.value.copy(
@@ -112,8 +124,7 @@ class SudokuScreenViewModel @Inject constructor(
             error = null
         )
 
-        loadSudoku()
+        loadSudoku(selectedDifficulty = currentDifficulty)
     }
-
 }
 
