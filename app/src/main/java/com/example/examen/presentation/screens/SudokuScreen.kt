@@ -3,14 +3,22 @@ package com.example.examen.presentation.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.examen.presentation.theme.ErrorRed
+import com.example.examen.presentation.theme.Pink
+import com.example.examen.presentation.theme.PinkLight
+import com.example.examen.presentation.theme.Purple
+import com.example.examen.presentation.theme.PurpleLight
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,35 +32,56 @@ fun SudokuScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(PinkLight, PurpleLight)
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
+
         when {
             uiState.isLoading -> {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Purple)
             }
 
             uiState.error != null -> {
-
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Error: ${uiState.error}",
-                        color = MaterialTheme.colorScheme.error
+                        color = ErrorRed
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { viewModel.loadSudoku() }) {
+                    Button(
+                        onClick = { viewModel.loadSudoku() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Purple,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
                         Text("Reintentar")
                     }
                 }
             }
 
             uiState.puzzle != null -> {
-                val puzzle = uiState.puzzle
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
+                    Text(
+                        "Sudoku (muy) Feo",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            color = Purple,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     SudokuGrid(
-                        puzzle = puzzle,
+                        puzzle = uiState.puzzle,
                         userInput = uiState.userInput,
                         onValueChange = { r, c, v ->
                             viewModel.updateCell(r, c, v)
@@ -61,39 +90,59 @@ fun SudokuScreen(
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
+
                     uiState.verificationMessage?.let {
-                        Spacer(Modifier.height(12.dp))
-                        Text(it)
+                        Text(
+                            it,
+                            color = Purple,
+                            style = MaterialTheme.typography.titleMedium
+                        )
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row {
 
-                        Button(onClick = { viewModel.verifySudoku() }) {
+                        Button(
+                            onClick = { viewModel.verifySudoku() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Purple,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
                             Text("Verificar")
                         }
 
                         Spacer(Modifier.width(8.dp))
 
-                        Button(onClick = { viewModel.resetPuzzle() }) {
-                            Text("Limpiar Sudoku")
+                        Button(
+                            onClick = { viewModel.resetPuzzle() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Pink,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Text("Limpiar")
                         }
 
                         Spacer(Modifier.width(8.dp))
 
-                        Button(onClick = { viewModel.newSudoku() }) {
-                            Text("Nuevo Sudoku")
+                        Button(
+                            onClick = { viewModel.newSudoku() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PurpleLight,
+                                contentColor = Purple
+                            )
+                        ) {
+                            Text("Nuevo")
                         }
-                    }
-
-                    uiState.error?.let {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(it)
                     }
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun SudokuGrid(
@@ -109,33 +158,37 @@ fun SudokuGrid(
 
                     val isFixed = puzzle[row][col] != null
                     val cellValue = if (isFixed) puzzle[row][col] else userInput[row][col]
-                    val isIncorrect = !isFixed && incorrectCells.contains(Pair(row, col))
+                    val isIncorrect = !isFixed && incorrectCells.contains(row to col)
 
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(42.dp)
                             .border(
                                 width = 1.dp,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = Purple,
+                                shape = RoundedCornerShape(8.dp)
                             )
                             .background(
-                                if (isIncorrect) MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-                                else MaterialTheme.colorScheme.surface
+                                when {
+                                    isIncorrect -> ErrorRed.copy(alpha = 0.7f)
+                                    isFixed -> PurpleLight.copy(alpha = 0.6f)
+                                    else -> PinkLight.copy(alpha = 0.6f)
+                                },
+                                shape = RoundedCornerShape(8.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
 
                         if (isFixed && cellValue != null) {
-                            // número original del puzzle - EN NEGRITA
                             Text(
                                 text = cellValue.toString(),
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = Purple
                                 )
                             )
                         } else if (!isFixed) {
-                            // celda editable - texto azul y bien centrado
+
                             var text by remember(cellValue) {
                                 mutableStateOf(cellValue?.toString() ?: "")
                             }
@@ -147,7 +200,6 @@ fun SudokuGrid(
                             BasicTextField(
                                 value = text,
                                 onValueChange = { newText ->
-                                    // Limitar a un solo carácter
                                     if (newText.length <= 1) {
                                         val num = newText.toIntOrNull()
                                         if (num == null || num in 1..9) {
@@ -161,20 +213,18 @@ fun SudokuGrid(
                                 },
                                 singleLine = true,
                                 textStyle = MaterialTheme.typography.titleLarge.copy(
-                                    color = MaterialTheme.colorScheme.primary, // Color azul
-                                    fontWeight = FontWeight.Normal,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    color = Pink,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center
                                 ),
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .wrapContentWidth(Alignment.CenterHorizontally)
-                                    .wrapContentHeight(Alignment.CenterVertically),
-                                decorationBox = { innerTextField ->
+                                    .fillMaxSize(),
+                                decorationBox = { inner ->
                                     Box(
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        innerTextField()
+                                        inner()
                                     }
                                 }
                             )

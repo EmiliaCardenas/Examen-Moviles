@@ -87,14 +87,22 @@ class SudokuScreenViewModel @Inject constructor(
 
     fun resetPuzzle() {
         val basePuzzle = _uiState.value.puzzle ?: return
+        val currentUserInput = _uiState.value.userInput
+        val newGrid = currentUserInput.map { it.toMutableList() }
+
+        for ((row, col) in _incorrectCells) {
+            if (basePuzzle[row][col] == null) {
+                newGrid[row][col] = null
+            }
+        }
 
         _incorrectCells.clear()
-
         _uiState.value = _uiState.value.copy(
-            userInput = basePuzzle.map { it.toMutableList() },
+            userInput = newGrid,
             verificationMessage = null
         )
     }
+
 
     fun newSudoku() {
         _incorrectCells.clear()
