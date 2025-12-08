@@ -142,7 +142,7 @@ fun SudokuScreen(
 
                         Row {
                             Button(
-                                onClick = { viewModel.verifySudoku() },
+                                onClick = { viewModel.verifySudokuFromApi() },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Purple,
                                     contentColor = MaterialTheme.colorScheme.onPrimary

@@ -48,6 +48,7 @@ object AppModule {
     fun provideSudokuRepository(
         api: ExamenApi,
         preferences: ExamenPreferences,
-    ): ExamenRepository = ExamenRepositoryImpl(api, preferences)
+        gson: Gson
+    ): ExamenRepository = ExamenRepositoryImpl(api, preferences, gson)
 
 }

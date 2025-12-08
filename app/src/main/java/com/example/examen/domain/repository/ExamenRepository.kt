@@ -1,5 +1,6 @@
 package com.example.examen.domain.repository
 
+import com.example.examen.data.remote.dto.ExamenResponseDto
 import com.example.examen.domain.model.Modelo
 
 interface ExamenRepository {
@@ -10,4 +11,10 @@ interface ExamenRepository {
         difficulty: String? = null,
         seed: String? = null
     ): Modelo
+
+    suspend fun solveSudoku(
+        currentBoard: List<List<Int>>,
+        width: Int,
+        height: Int
+    ): ExamenResponseDto
 }

@@ -1,3 +1,5 @@
+package com.example.examen.data.mapper
+
 import com.example.examen.data.remote.dto.ExamenResponseDto
 import com.example.examen.domain.model.Modelo
 

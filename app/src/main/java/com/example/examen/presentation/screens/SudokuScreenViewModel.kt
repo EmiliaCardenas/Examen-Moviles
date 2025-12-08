@@ -14,13 +14,10 @@ class SudokuScreenViewModel @Inject constructor(
     private val repository: ExamenRepository,
     private val preferences: ExamenPreferences
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(SudokuScreenUiState())
     val uiState: StateFlow<SudokuScreenUiState> = _uiState
-
     private val _incorrectCells = mutableSetOf<Pair<Int, Int>>()
     val incorrectCells: Set<Pair<Int, Int>> get() = _incorrectCells
-
     private var currentDifficulty: String = "medium"
     private var currentBoardSize: Int = 9
 
@@ -125,34 +122,58 @@ class SudokuScreenViewModel @Inject constructor(
         _uiState.value = currentState.copy(userInput = newGrid)
     }
 
-    fun verifySudoku() {
-        val state = _uiState.value
-        val solution = state.solution ?: return
-        val boardSize = state.boardSize
+    fun verifySudokuFromApi() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            val userBoard = state.userInput
+            val boardSize = state.boardSize
 
-        _incorrectCells.clear()
+            val boardToSend: List<List<Int>> = userBoard.map { row ->
+                row.map { cell -> cell ?: 0 }
+            }
+            val (width, height) = when (boardSize) {
+                4 -> 2 to 2
+                9 -> 3 to 3
+                else -> 3 to 3
+            }
+            try {
+                val response = repository.solveSudoku(
+                    currentBoard = boardToSend,
+                    width = width,
+                    height = height
+                )
 
-        var hasErrors = false
+                val apiSolution = response.solution
 
-        for (i in 0 until boardSize) {
-            for (j in 0 until boardSize) {
-                val fixed = state.puzzle!![i][j] != null
-                val userVal = state.userInput[i][j]
-                val correctVal = solution[i][j]
+                _incorrectCells.clear()
+                var hasErrors = false
 
-                if (!fixed && (userVal == null || userVal != correctVal)) {
-                    _incorrectCells.add(i to j)
-                    hasErrors = true
+                for (i in 0 until boardSize) {
+                    for (j in 0 until boardSize) {
+                        val userVal = userBoard[i][j]
+                        val correctVal = apiSolution[i][j]
+
+                        if (userVal == null || userVal != correctVal) {
+                            _incorrectCells.add(i to j)
+                            hasErrors = true
+                        }
+                    }
                 }
+
+                _uiState.value = state.copy(
+                    verificationMessage = if (hasErrors)
+                        "Hay errores en el Sudoku. Limpialo y sigue jugando"
+                    else
+                        "¡Sudoku completado correctamente! (Verificado por API)"
+                )
+
+            } catch (e: Exception) {
+                _uiState.value = state.copy(
+                    error = "Error al verificar con la API: ${e.message}",
+                    verificationMessage = null
+                )
             }
         }
-
-        _uiState.value = state.copy(
-            verificationMessage = if (hasErrors)
-                "Hay errores en el Sudoku. Limpialo y sigue jugando"
-            else
-                "Sudoku completado correctamente"
-        )
     }
 
     fun resetPuzzle() {

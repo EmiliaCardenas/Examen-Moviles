@@ -3,6 +3,7 @@ package com.example.examen.data.local.preferences
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.example.examen.core.Constants
 import com.example.examen.data.local.model.ExamenCache
 import com.example.examen.data.local.model.GameProgressCache
 import com.example.examen.data.local.preferences.PreferencesConstants.CACHE_DURATION
@@ -115,5 +116,9 @@ constructor(
         prefs.edit {
             remove(PreferencesConstants.KEY_GAME_PROGRESS)
         }
+    }
+
+    fun getApiKey(): String? {
+        return Constants.SUDOKU_API_KEY
     }
 }
