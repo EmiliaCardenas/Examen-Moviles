@@ -14,11 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.examen.presentation.theme.ErrorRed
-import com.example.examen.presentation.theme.Pink
-import com.example.examen.presentation.theme.PinkLight
-import com.example.examen.presentation.theme.Purple
-import com.example.examen.presentation.theme.PurpleLight
+import com.example.examen.presentation.theme.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
@@ -34,6 +30,9 @@ fun SudokuScreen(
     difficulty: String
 ) {
     val uiState = viewModel.uiState.collectAsState().value
+    val incorrectCells by remember { derivedStateOf { viewModel.incorrectCells } }
+    val duplicateCells by remember { derivedStateOf { viewModel.duplicateCells } }
+
     LaunchedEffect(difficulty) {
         if (difficulty == "load_saved") {
             viewModel.loadSudoku(loadSavedGame = true)
@@ -100,7 +99,7 @@ fun SudokuScreen(
                 uiState.puzzle != null -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            "Sudoku (muy) Feo",
+                            "Sudoku",
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 color = Purple,
                                 fontWeight = FontWeight.Bold
@@ -124,7 +123,8 @@ fun SudokuScreen(
                             onValueChange = { r, c, v ->
                                 viewModel.updateCell(r, c, v)
                             },
-                            incorrectCells = viewModel.incorrectCells,
+                            incorrectCells = incorrectCells,
+                            duplicateCells = duplicateCells,
                             boardSize = uiState.boardSize
                         )
 
@@ -133,16 +133,22 @@ fun SudokuScreen(
                         uiState.verificationMessage?.let {
                             Text(
                                 it,
-                                color = Purple,
+                                color = if (it.contains("¡Felicidades!") || it.contains("¡Bien!"))
+                                    Green else Purple,
                                 style = MaterialTheme.typography.titleMedium
                             )
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Row {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // Botón para verificar
                             Button(
-                                onClick = { viewModel.verifySudokuFromApi() },
+                                onClick = { viewModel.verifySudoku() },
+                                modifier = Modifier.padding(8.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Purple,
                                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -153,11 +159,13 @@ fun SudokuScreen(
 
                             Spacer(Modifier.width(8.dp))
 
+                            // Botón para limpiar errores
                             Button(
-                                onClick = { viewModel.resetPuzzle() },
+                                onClick = { viewModel.clearErrors() },
+                                modifier = Modifier.padding(8.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Pink,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                    containerColor = PinkLight,
+                                    contentColor = Purple
                                 )
                             ) {
                                 Text("Limpiar")
@@ -165,8 +173,10 @@ fun SudokuScreen(
 
                             Spacer(Modifier.width(8.dp))
 
+                            // Botón para nuevo Sudoku
                             Button(
                                 onClick = { viewModel.newSudoku(difficulty) },
+                                modifier = Modifier.padding(8.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = PurpleLight,
                                     contentColor = Purple
@@ -234,6 +244,7 @@ fun SudokuGrid(
     userInput: List<MutableList<Int?>>,
     onValueChange: (row: Int, col: Int, value: Int?) -> Unit,
     incorrectCells: Set<Pair<Int, Int>>,
+    duplicateCells: Set<Pair<Int, Int>>,
     boardSize: Int
 ) {
     val cellSize = if (boardSize == 9) 36.dp else 48.dp
@@ -258,10 +269,19 @@ fun SudokuGrid(
                         val isFixed = puzzle[row][col] != null
                         val cellValue = if (isFixed) puzzle[row][col] else userInput[row][col]
                         val isIncorrect = !isFixed && incorrectCells.contains(row to col)
+                        val isDuplicate = !isFixed && duplicateCells.contains(row to col)
 
                         // Determinar bordes más gruesos para los sub-grids
                         val borderEnd = if ((col + 1) % subGridSize == 0 && col != boardSize - 1) 2.dp else 1.dp
                         val borderBottom = if ((row + 1) % subGridSize == 0 && row != boardSize - 1) 2.dp else 1.dp
+
+                        // Determinar color de fondo
+                        val backgroundColor = when {
+                            isIncorrect -> ErrorRed.copy(alpha = 0.3f)
+                            isDuplicate -> Yellow.copy(alpha = 0.3f)
+                            isFixed -> PurpleLight.copy(alpha = 0.1f)
+                            else -> MaterialTheme.colorScheme.background
+                        }
 
                         Box(
                             modifier = Modifier
@@ -276,13 +296,7 @@ fun SudokuGrid(
                                     color = Purple.copy(alpha = 0.4f),
                                     shape = RoundedCornerShape(0.dp)
                                 )
-                                .background(
-                                    when {
-                                        isIncorrect -> ErrorRed.copy(alpha = 0.3f)
-                                        isFixed -> PurpleLight.copy(alpha = 0.1f)
-                                        else -> MaterialTheme.colorScheme.background
-                                    }
-                                )
+                                .background(backgroundColor)
                                 .padding(1.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -318,7 +332,11 @@ fun SudokuGrid(
                                     },
                                     singleLine = true,
                                     textStyle = textStyle.copy(
-                                        color = if (isIncorrect) ErrorRed else Pink,
+                                        color = when {
+                                            isIncorrect -> ErrorRed
+                                            isDuplicate -> Orange
+                                            else -> Pink
+                                        },
                                         fontWeight = FontWeight.Medium,
                                         textAlign = TextAlign.Center
                                     ),

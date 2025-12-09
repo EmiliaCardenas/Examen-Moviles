@@ -2,8 +2,11 @@ package com.example.examen.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple = Color(0xFF8E24AA)
-val PurpleLight = Color(0xFFE1BEE7)
-val Pink = Color(0xFFF48FB1)
-val PinkLight = Color(0xFFFCE4EC)
-val ErrorRed = Color(0xFFFFCDD2)
+val Purple = Color(0xFF6A1B9A)
+val PurpleLight = Color(0xFF9C4DCC)
+val Pink = Color(0xFFEC407A)
+val PinkLight = Color(0xFFF48FB1)
+val ErrorRed = Color(0xFFD32F2F)
+val Green = Color(0xFF388E3C)
+val Yellow = Color(0xFFFFEB3B)
+val Orange = Color(0xFFFF9800)

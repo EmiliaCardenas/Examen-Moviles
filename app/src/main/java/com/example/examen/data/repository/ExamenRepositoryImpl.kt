@@ -1,10 +1,11 @@
 package com.example.examen.data.repository
 
+import android.util.Log
+import com.example.examen.core.Constants
 import com.example.examen.data.local.preferences.ExamenPreferences
 import com.example.examen.data.mapper.toDomain
 import com.example.examen.data.remote.api.ExamenApi
 import com.example.examen.data.remote.dto.ExamenResponseDto
-import com.example.examen.data.remote.dto.SudokuSolutionRequestDto
 import com.example.examen.domain.model.Modelo
 import com.example.examen.domain.repository.ExamenRepository
 import com.google.gson.Gson
@@ -18,7 +19,7 @@ class ExamenRepositoryImpl @Inject constructor(
     private val gson: Gson
 ) : ExamenRepository {
     private fun getApiKey(): String {
-        return preferences.getApiKey() ?: throw IllegalStateException("API Key not found")
+        return preferences.getApiKey() ?: Constants.SUDOKU_API_KEY
     }
 
     override suspend fun getSudoku(
@@ -65,13 +66,33 @@ class ExamenRepositoryImpl @Inject constructor(
 
         val apiKey = getApiKey()
 
-        val puzzleJsonString = gson.toJson(currentBoard)
+        // Convertir la lista 2D a JSON
+        val puzzleJson = gson.toJson(currentBoard)
 
-        return api.solveSudoku(
-            apiKey = apiKey,
-            puzzle = puzzleJsonString,
-            width = width,
-            height = height
-        )
+        Log.d("SUDOKU_API", "Puzzle JSON original: $puzzleJson")
+
+        // Para la API de Ninjas, NO codifiques el JSON adicionalmente
+        // Retrofit ya lo codificará automáticamente como query parameter
+        // Pero asegurémonos de que no tenga espacios
+        val cleanPuzzleJson = puzzleJson.replace(" ", "")
+
+        Log.d("SUDOKU_API", "Puzzle JSON limpio: $cleanPuzzleJson")
+        Log.d("SUDOKU_API", "Width: $width, Height: $height")
+
+        return try {
+            val response = api.solveSudoku(
+                apiKey = apiKey,
+                puzzle = cleanPuzzleJson,
+                width = width,
+                height = height
+            )
+
+            Log.d("SUDOKU_API", "Respuesta recibida: $response")
+            response
+
+        } catch (e: Exception) {
+            Log.e("SUDOKU_API", "Error en la llamada: ${e.message}", e)
+            throw e
+        }
     }
 }
