@@ -3,6 +3,8 @@ package com.example.examen.presentation.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -10,16 +12,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.examen.presentation.navigation.Screen
-import com.example.examen.presentation.theme.PinkLight
-import com.example.examen.presentation.theme.PurpleLight
-import com.example.examen.presentation.theme.Purple
-import com.example.examen.presentation.theme.Pink
-import androidx.compose.foundation.border
-
+import com.example.examen.presentation.theme.*
 
 @Composable
 fun HomeScreen(
@@ -37,75 +38,126 @@ fun HomeScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(PinkLight, PurpleLight)
+                    colors = listOf(PinkVeryLight, BlueVeryLight, PurpleVeryLight),
+                    startY = 0f,
+                    endY = 1000f
                 )
             ),
         contentAlignment = Alignment.Center
     ) {
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
         ) {
-
-            Text(
-                text = "Sudoku (muy) Feo",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    color = Purple
-                )
-            )
-            if (uiState.isGameSaved) {
-                ContinueGameButton {
-                    navController.navigate(Screen.SudokuScreen.createRoute(difficulty = "load_saved"))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .height(120.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "SUDOKU (menos) FEO",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            color = PurpleDark,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    )
                 }
             }
 
-            DifficultyButton("Easy") {
-                navController.navigate(Screen.SudokuScreen.createRoute("easy"))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            if (uiState.isGameSaved) {
+                MenuButton(
+                    text = "CONTINUAR PARTIDA",
+                    icon = Icons.Filled.PlayArrow,
+                    backgroundColor = PinkLight,
+                    textColor = Color.White,
+                    onClick = {
+                        navController.navigate(Screen.SudokuScreen.createRoute(difficulty = "load_saved"))
+                    },
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                )
             }
 
-            DifficultyButton("Medium") {
-                navController.navigate(Screen.SudokuScreen.createRoute("medium"))
-            }
+            MenuButton(
+                text = "FÁCIL",
+                backgroundColor = Blue,
+                textColor = Color.White,
+                onClick = {
+                    navController.navigate(Screen.SudokuScreen.createRoute("easy"))
+                },
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
 
-            DifficultyButton("Hard") {
-                navController.navigate(Screen.SudokuScreen.createRoute("hard"))
-            }
+            MenuButton(
+                text = "MEDIO",
+                backgroundColor = Purple,
+                textColor = Color.White,
+                onClick = {
+                    navController.navigate(Screen.SudokuScreen.createRoute("medium"))
+                },
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
+
+            MenuButton(
+                text = "DIFÍCIL",
+                backgroundColor = PinkDark,
+                textColor = Color.White,
+                onClick = {
+                    navController.navigate(Screen.SudokuScreen.createRoute("hard"))
+                },
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
         }
     }
 }
 
 @Composable
-fun DifficultyButton(text: String, onClick: () -> Unit) {
-    Button(
+fun MenuButton(
+    text: String,
+    icon: ImageVector? = null,
+    backgroundColor: Color,
+    textColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ElevatedButton(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Purple,
-            contentColor = MaterialTheme.colorScheme.onPrimary
+        colors = ButtonDefaults.elevatedButtonColors(
+            containerColor = backgroundColor,
+            contentColor = textColor
         ),
-        modifier = Modifier
-            .fillMaxWidth(0.6f)
-            .height(50.dp)
-    ) {
-        Text(text = text, style = MaterialTheme.typography.titleMedium)
-    }
-}
-
-@Composable
-fun ContinueGameButton(onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Pink,
-            contentColor = MaterialTheme.colorScheme.onPrimary
+        elevation = ButtonDefaults.elevatedButtonElevation(
+            defaultElevation = 8.dp,
+            pressedElevation = 4.dp
         ),
-        modifier = Modifier
-            .fillMaxWidth(0.6f)
-            .height(50.dp)
-            .border(2.dp, Purple, RoundedCornerShape(12.dp))
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.height(60.dp)
     ) {
-        Text(text = "Continuar Partida", style = MaterialTheme.typography.titleMedium)
+        if (icon != null) {
+            Icon(
+                icon,
+                contentDescription = text,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            )
+        )
     }
 }

@@ -18,12 +18,8 @@ class SudokuScreenViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SudokuScreenUiState())
     val uiState: StateFlow<SudokuScreenUiState> = _uiState
-
     private val _incorrectCells = mutableSetOf<Pair<Int, Int>>()
     val incorrectCells: Set<Pair<Int, Int>> get() = _incorrectCells
-
-    private val _duplicateCells = mutableSetOf<Pair<Int, Int>>()
-    val duplicateCells: Set<Pair<Int, Int>> get() = _duplicateCells
 
     private var currentDifficulty: String = "medium"
     private var currentBoardSize: Int = 9
@@ -116,10 +112,6 @@ class SudokuScreenViewModel @Inject constructor(
         }
     }
 
-    fun isGameSaved(): Boolean {
-        return preferences.getGameProgress() != null
-    }
-
     fun changeBoardSize(newSize: Int, difficulty: String) {
         if (newSize != currentBoardSize) {
             currentBoardSize = newSize
@@ -131,57 +123,30 @@ class SudokuScreenViewModel @Inject constructor(
         val currentState = _uiState.value
         val basePuzzle = currentState.puzzle ?: return
         val boardSize = currentState.boardSize
-
-        // Verificar si es celda fija
         val isFixedCell = basePuzzle.getOrNull(row)?.getOrNull(col) != 0 &&
                 basePuzzle.getOrNull(row)?.getOrNull(col) != null
-
         if (isFixedCell) {
             return
         }
-
-        // Validar rango
         if (value != null && (value < 1 || value > boardSize)) {
             return
         }
 
         val newGrid = currentState.userInput.map { it.toMutableList() }
         newGrid[row][col] = value
-
-        // Actualizar estado
         _uiState.value = currentState.copy(userInput = newGrid)
-
-        // Limpiar errores de esta celda al actualizar
         _incorrectCells.remove(row to col)
-        _duplicateCells.remove(row to col)
-
-        // Validar duplicados automáticamente al actualizar
-        validateDuplicates()
     }
 
-    // Un solo botón para verificar todo
     fun verifySudoku() {
         viewModelScope.launch {
             val state = _uiState.value
             val userBoard = state.userInput
             val boardSize = state.boardSize
+            val puzzle = state.puzzle ?: return@launch
 
-            // Limpiar estados previos
-            _duplicateCells.clear()
             _incorrectCells.clear()
 
-            // 1. Primero validar duplicados localmente
-            val duplicateValidation = validateBoardForDuplicates(userBoard, boardSize)
-            if (duplicateValidation.hasDuplicates) {
-                _duplicateCells.addAll(duplicateValidation.duplicateCells)
-                _uiState.value = state.copy(
-                    verificationMessage = "Hay números duplicados en el tablero."
-                )
-                return@launch
-            }
-
-            // 2. Si no hay duplicados, verificar con API
-            // Convertir el board del usuario para enviar a la API
             val boardToSend: List<List<Int>> = userBoard.map { row ->
                 row.map { cell -> cell ?: 0 }
             }
@@ -199,10 +164,10 @@ class SudokuScreenViewModel @Inject constructor(
                     height = height
                 )
 
-                // Manejar el caso de "unsolvable"
                 if (response.status == "unsolvable") {
+                    findAllIncorrectCells(userBoard, puzzle, boardSize)
                     _uiState.value = state.copy(
-                        verificationMessage = "El Sudoku tiene errores. Revisa los números."
+                        verificationMessage = "Revisa los números en rojo."
                     )
                     return@launch
                 }
@@ -218,29 +183,18 @@ class SudokuScreenViewModel @Inject constructor(
 
                 var hasErrors = false
                 var isComplete = true
-                var correctCells = 0
-                var totalCells = 0
 
-                // Comparar cada celda
                 for (i in 0 until boardSize) {
                     for (j in 0 until boardSize) {
                         val userVal = userBoard[i][j]
                         val solutionVal = apiSolution[i][j]
+                        val isOriginalEmpty = puzzle[i][j] == 0 || puzzle[i][j] == null
 
-                        // Solo contar celdas que deben ser llenadas
-                        if (state.puzzle?.get(i)?.get(j) == 0 ||
-                            state.puzzle?.get(i)?.get(j) == null) {
-                            totalCells++
-
-                            // Verificar si está completo
+                        if (isOriginalEmpty) {
                             if (userVal == null) {
                                 isComplete = false
                             } else {
-                                // Si el usuario puso un valor y es correcto
-                                if (userVal == solutionVal) {
-                                    correctCells++
-                                } else {
-                                    // Marcar como incorrecto
+                                if (userVal != solutionVal) {
                                     _incorrectCells.add(i to j)
                                     hasErrors = true
                                 }
@@ -249,10 +203,9 @@ class SudokuScreenViewModel @Inject constructor(
                     }
                 }
 
-                // Determinar el mensaje apropiado
                 val message = when {
-                    hasErrors -> "Hay errores ($correctCells/$totalCells correctos)."
-                    !isComplete -> "¡Bien! ($correctCells/$totalCells correctos). Completa las celdas vacías."
+                    hasErrors -> "Revisa los números en rojo (${_incorrectCells.size} errores)."
+                    !isComplete -> "Continúa completando el tablero."
                     else -> "¡Felicidades! Sudoku completado correctamente."
                 }
 
@@ -262,100 +215,120 @@ class SudokuScreenViewModel @Inject constructor(
 
             } catch (e: Exception) {
                 _uiState.value = state.copy(
-                    verificationMessage = "Error de conexión. Intenta más tarde."
+                    verificationMessage = "Error de conexión."
                 )
             }
         }
     }
 
-    private fun validateDuplicates() {
-        val state = _uiState.value
-        val userBoard = state.userInput
-        val boardSize = state.boardSize
-
-        val validationResult = validateBoardForDuplicates(userBoard, boardSize)
-
-        _duplicateCells.clear()
-        if (validationResult.hasDuplicates) {
-            _duplicateCells.addAll(validationResult.duplicateCells)
-        }
-    }
-
-    private fun validateBoardForDuplicates(
+    private fun findAllIncorrectCells(
         board: List<List<Int?>>,
+        puzzle: List<List<Int?>>,
         boardSize: Int
-    ): DuplicateValidationResult {
-        val duplicateCells = mutableSetOf<Pair<Int, Int>>()
+    ) {
+        val incorrectSet = mutableSetOf<Pair<Int, Int>>()
 
-        // Validar filas
         for (i in 0 until boardSize) {
-            val seenInRow = mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
             for (j in 0 until boardSize) {
                 val value = board[i][j]
-                if (value != null) {
-                    seenInRow.getOrPut(value) { mutableListOf() }.add(i to j)
-                }
-            }
+                val isFixed = puzzle[i][j] != null && puzzle[i][j] != 0
 
-            // Marcar duplicados en fila
-            for ((value, positions) in seenInRow) {
-                if (positions.size > 1) {
-                    duplicateCells.addAll(positions)
+                if (!isFixed && value != null) {
+                    if (value < 1 || value > boardSize) {
+                        incorrectSet.add(i to j)
+                    }
                 }
             }
         }
 
-        // Validar columnas
+        val fullBoard = mutableListOf<MutableList<Int?>>()
+        for (i in 0 until boardSize) {
+            val row = mutableListOf<Int?>()
+            for (j in 0 until boardSize) {
+                val isFixed = puzzle[i][j] != null && puzzle[i][j] != 0
+                row.add(if (isFixed) puzzle[i][j] else board[i][j])
+            }
+            fullBoard.add(row)
+        }
+
+        for (i in 0 until boardSize) {
+            val seen = mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
+            for (j in 0 until boardSize) {
+                val value = fullBoard[i][j]
+                if (value != null) {
+                    seen.getOrPut(value) { mutableListOf() }.add(i to j)
+                }
+            }
+
+            for ((_, positions) in seen) {
+                if (positions.size > 1) {
+                    incorrectSet.addAll(positions)
+                }
+            }
+        }
+
         for (j in 0 until boardSize) {
-            val seenInCol = mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
+            val seen = mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
             for (i in 0 until boardSize) {
-                val value = board[i][j]
+                val value = fullBoard[i][j]
                 if (value != null) {
-                    seenInCol.getOrPut(value) { mutableListOf() }.add(i to j)
+                    seen.getOrPut(value) { mutableListOf() }.add(i to j)
                 }
             }
-
-            // Marcar duplicados en columna
-            for ((value, positions) in seenInCol) {
+            for ((_, positions) in seen) {
                 if (positions.size > 1) {
-                    duplicateCells.addAll(positions)
+                    incorrectSet.addAll(positions)
                 }
             }
         }
 
-        // Validar cajas (para Sudoku 9x9)
-        if (boardSize == 9) {
-            for (boxRow in 0 until 3) {
-                for (boxCol in 0 until 3) {
-                    val seenInBox = mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
-                    for (i in boxRow*3 until (boxRow+1)*3) {
-                        for (j in boxCol*3 until (boxCol+1)*3) {
-                            val value = board[i][j]
-                            if (value != null) {
-                                seenInBox.getOrPut(value) { mutableListOf() }.add(i to j)
-                            }
+        val subGridSize = if (boardSize == 9) 3 else 2
+
+        for (boxRow in 0 until subGridSize) {
+            for (boxCol in 0 until subGridSize) {
+                val seen = mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
+                for (i in boxRow * subGridSize until (boxRow + 1) * subGridSize) {
+                    for (j in boxCol * subGridSize until (boxCol + 1) * subGridSize) {
+                        val value = fullBoard[i][j]
+                        if (value != null) {
+                            seen.getOrPut(value) { mutableListOf() }.add(i to j)
                         }
                     }
-
-                    // Marcar duplicados en caja
-                    for ((value, positions) in seenInBox) {
-                        if (positions.size > 1) {
-                            duplicateCells.addAll(positions)
-                        }
+                }
+                for ((_, positions) in seen) {
+                    if (positions.size > 1) {
+                        incorrectSet.addAll(positions)
                     }
                 }
             }
         }
 
-        return DuplicateValidationResult(
-            hasDuplicates = duplicateCells.isNotEmpty(),
-            duplicateCells = duplicateCells
-        )
+        val filteredSet = incorrectSet.filterNot { (row, col) ->
+            val isFixed = puzzle[row][col] != null && puzzle[row][col] != 0
+            isFixed
+        }.toSet()
+
+        _incorrectCells.addAll(filteredSet)
     }
 
     fun clearErrors() {
+        val currentState = _uiState.value
+        val userInput = currentState.userInput
+        val newUserInput = userInput.map { it.toMutableList() }
+
+        for ((row, col) in _incorrectCells) {
+            val isFixed = currentState.puzzle?.getOrNull(row)?.getOrNull(col) != 0 &&
+                    currentState.puzzle?.getOrNull(row)?.getOrNull(col) != null
+
+            if (!isFixed) {
+                newUserInput[row][col] = null
+            }
+        }
+
         clearErrorStates()
-        _uiState.value = _uiState.value.copy(
+
+        _uiState.value = currentState.copy(
+            userInput = newUserInput,
             verificationMessage = null,
             error = null
         )
@@ -363,21 +336,15 @@ class SudokuScreenViewModel @Inject constructor(
 
     fun newSudoku(difficulty: String = currentDifficulty) {
         clearErrorStates()
-        _uiState.value = _uiState.value.copy(
-            verificationMessage = null,
-            error = null
+        _uiState.value = SudokuScreenUiState(
+            isLoading = true,
+            boardSize = currentBoardSize
         )
         loadSudoku(selectedDifficulty = difficulty)
     }
 
     private fun clearErrorStates() {
         _incorrectCells.clear()
-        _duplicateCells.clear()
     }
 }
-
-data class DuplicateValidationResult(
-    val hasDuplicates: Boolean,
-    val duplicateCells: Set<Pair<Int, Int>>
-)
 
