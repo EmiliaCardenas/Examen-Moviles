@@ -7,5 +7,4 @@ object PreferencesConstants {
     const val KEY_OFFSET = "offset"
     const val KEY_TOTAL_COUNT = "total_count"
     const val KEY_GAME_PROGRESS = "game_progress"
-    const val CACHE_DURATION = 5 * 60 * 1000 // 5 minutos en milisegundos
 }

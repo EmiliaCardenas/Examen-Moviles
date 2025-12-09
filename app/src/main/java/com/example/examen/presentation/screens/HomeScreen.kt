@@ -29,6 +29,7 @@ fun HomeScreen(
 ) {
     val uiState = viewModel.uiState.collectAsState().value
 
+    // Refrescar cuando se vuelve a esta pantalla
     LaunchedEffect(Unit) {
         viewModel.checkSavedGame()
     }
@@ -52,6 +53,7 @@ fun HomeScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
         ) {
+            // Título
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
@@ -77,6 +79,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Botón de continuar partida (solo si hay guardada)
             if (uiState.isGameSaved) {
                 MenuButton(
                     text = "CONTINUAR PARTIDA",
@@ -84,12 +87,15 @@ fun HomeScreen(
                     backgroundColor = PinkLight,
                     textColor = Color.White,
                     onClick = {
+                        // Esto usará el caché automáticamente porque carga
+                        // desde las preferences que ya guardaste
                         navController.navigate(Screen.SudokuScreen.createRoute(difficulty = "load_saved"))
                     },
                     modifier = Modifier.fillMaxWidth(0.8f)
                 )
             }
 
+            // Dificultades para nuevas partidas
             MenuButton(
                 text = "FÁCIL",
                 backgroundColor = Blue,

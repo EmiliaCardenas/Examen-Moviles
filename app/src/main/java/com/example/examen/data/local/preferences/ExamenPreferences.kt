@@ -6,7 +6,6 @@ import androidx.core.content.edit
 import com.example.examen.core.Constants
 import com.example.examen.data.local.model.ExamenCache
 import com.example.examen.data.local.model.GameProgressCache
-import com.example.examen.data.local.preferences.PreferencesConstants.CACHE_DURATION
 import com.example.examen.data.local.preferences.PreferencesConstants.KEY_EXAMEN_CACHE
 import com.example.examen.data.local.preferences.PreferencesConstants.KEY_LAST_UPDATE
 import com.example.examen.data.local.preferences.PreferencesConstants.KEY_OFFSET
@@ -67,11 +66,6 @@ constructor(
             offset = offset,
             totalCount = totalCount,
         )
-    }
-
-    fun isCacheValid(): Boolean {
-        val lastUpdate = prefs.getLong(KEY_LAST_UPDATE, 0)
-        return System.currentTimeMillis() - lastUpdate < CACHE_DURATION
     }
 
     fun clearCache() {
