@@ -1,6 +1,5 @@
 package com.example.examen.presentation.screens
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.examen.data.local.preferences.ExamenPreferences
@@ -52,8 +51,7 @@ class SudokuScreenViewModel @Inject constructor(
                             boardSize = currentBoardSize
                         )
                         clearErrorStates()
-                        preferences.clearGameProgress()
-                        return@launch
+                         return@launch
                     }
                 }
 
@@ -99,7 +97,6 @@ class SudokuScreenViewModel @Inject constructor(
             }
         }
     }
-
     fun saveGame() {
         val state = _uiState.value
         if (state.isSuccess && state.puzzle != null) {

@@ -1,6 +1,5 @@
 package com.example.examen.data.repository
 
-import android.util.Log
 import com.example.examen.core.Constants
 import com.example.examen.data.local.preferences.ExamenPreferences
 import com.example.examen.data.mapper.toDomain
@@ -28,9 +27,7 @@ class ExamenRepositoryImpl @Inject constructor(
         difficulty: String?,
         seed: String?
     ): Modelo {
-
         return try {
-
             val apiKey = getApiKey()
 
             val dto = api.getSudoku(
@@ -51,10 +48,12 @@ class ExamenRepositoryImpl @Inject constructor(
 
             modelo
         } catch (e: Exception) {
-
-            preferences.getSudokuCache()?.let { cache ->
-                return cache.sudoku.firstOrNull() ?: throw e
-            } ?: throw e
+            val cache = preferences.getSudokuCache()
+            if (cache != null && cache.sudoku.isNotEmpty()) {
+                return cache.sudoku.first()
+            } else {
+                throw e
+            }
         }
     }
 
@@ -65,19 +64,9 @@ class ExamenRepositoryImpl @Inject constructor(
     ): ExamenResponseDto {
 
         val apiKey = getApiKey()
-
-        // Convertir la lista 2D a JSON
         val puzzleJson = gson.toJson(currentBoard)
 
-        Log.d("SUDOKU_API", "Puzzle JSON original: $puzzleJson")
-
-        // Para la API de Ninjas, NO codifiques el JSON adicionalmente
-        // Retrofit ya lo codificará automáticamente como query parameter
-        // Pero asegurémonos de que no tenga espacios
         val cleanPuzzleJson = puzzleJson.replace(" ", "")
-
-        Log.d("SUDOKU_API", "Puzzle JSON limpio: $cleanPuzzleJson")
-        Log.d("SUDOKU_API", "Width: $width, Height: $height")
 
         return try {
             val response = api.solveSudoku(
@@ -86,12 +75,9 @@ class ExamenRepositoryImpl @Inject constructor(
                 width = width,
                 height = height
             )
-
-            Log.d("SUDOKU_API", "Respuesta recibida: $response")
             response
 
         } catch (e: Exception) {
-            Log.e("SUDOKU_API", "Error en la llamada: ${e.message}", e)
             throw e
         }
     }

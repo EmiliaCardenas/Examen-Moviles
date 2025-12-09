@@ -10,14 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.example.examen.presentation.navigation.ExamenNavGraph
-import com.example.examen.presentation.screens.HomeScreen
 import com.example.examen.presentation.theme.ExamenTheme
 import dagger.hilt.android.AndroidEntryPoint
-
-// Se borraron los @Greeting
-
-// Copy paste por si acaso: @Suppress("ktlint:standard:function-naming")
-// Copy paste en casi necesario: @OptIn(ExperimentalMaterial3Api::class)
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

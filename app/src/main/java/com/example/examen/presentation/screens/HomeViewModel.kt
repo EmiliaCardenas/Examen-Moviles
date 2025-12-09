@@ -5,6 +5,8 @@ import com.example.examen.data.local.preferences.ExamenPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
 @HiltViewModel
@@ -13,11 +15,19 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
-    val uiState: StateFlow<HomeUiState> = _uiState
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    init {
+        checkSavedGame()
+    }
 
     fun checkSavedGame() {
-        _uiState.value = _uiState.value.copy(
-            isGameSaved = preferences.getGameProgress() != null
-        )
+        val gameProgress = preferences.getGameProgress()
+        _uiState.update {
+            it.copy(
+                isGameSaved = gameProgress != null,
+                isLoading = false
+            )
+        }
     }
 }
